@@ -87,3 +87,20 @@ def midonet_extension(cls):
             setattr(cls, method.__name__, method)
 
     return cls
+
+
+@midonet_extension
+class Tunnelzone(extensions.ExtensionDescriptor):
+    """Tunnel zone represents a group in which hosts can be included to form an
+    isolated zone for tunneling.
+    """
+
+    # TODO(tfukushima): Handle multiple resources for the single class.
+    RESOURCE_ATTIRBUTE_MAP = {
+        'id': {'allow_post': False, 'allow_put': False,
+               'validate': {'type:string': None}, 'is_visible': True},
+        'name': {'allow_post': True, 'allow_put': True, 'default': '',
+                 'validate': {'type:string': None}, 'is_visible': True},
+        'type': {'allow_post': True, 'allow_put': True, 'default': 'GRE',
+                 'validate': {'type:values': ['GRE']}, 'is_visible': True},
+        }

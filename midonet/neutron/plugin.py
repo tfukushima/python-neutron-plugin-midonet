@@ -132,6 +132,11 @@ def generate_methods(methods):
     return wrapper
 
 
+@generate_methods(['list', 'show', 'create', 'update', 'delete'])
+class TunnelzoneHandlerMixin(object):
+    """The mixin of the request handler for the tunnel zones."""
+
+
 class MidonetPluginV2(db_base_plugin_v2.NeutronDbPluginV2,
                       portbindings_db.PortBindingMixin,
                       external_net_db.External_net_db_mixin,
@@ -139,7 +144,8 @@ class MidonetPluginV2(db_base_plugin_v2.NeutronDbPluginV2,
                       agentschedulers_db.DhcpAgentSchedulerDbMixin,
                       securitygroups_db.SecurityGroupDbMixin,
                       rsi_db.RoutedServiceInsertionDbMixin,
-                      loadbalancer_db.LoadBalancerPluginDb):
+                      loadbalancer_db.LoadBalancerPluginDb,
+                      TunnelzoneHandlerMixin):
 
     supported_extension_aliases = ['agent',
                                    'binding',
@@ -149,7 +155,8 @@ class MidonetPluginV2(db_base_plugin_v2.NeutronDbPluginV2,
                                    'quotas',
                                    'security-group',
                                    'routed-service-insertion',
-                                   'lbaas']
+                                   'lbaas',
+                                   'tunnelzone']
     __native_bulk_support = True
 
     def __init__(self):
