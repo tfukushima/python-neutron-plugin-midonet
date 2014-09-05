@@ -123,25 +123,6 @@ def midonet_extension(cls):
     return cls
 
 
-TUNNEL_ZONE_HOST = 'tunnelzonehost'
-TUNNEL_ZONE_HOSTS = '%ss' % TUNNEL_ZONE_HOST
-
-
-class TunnelzonehostController(wsgi.Controller):
-    def get_plugin(self):
-        plugin = manager.NeutronManager.get_service_plugins().get(
-            Tunnelzone.EXT_ALIAS)
-        if not plugin:
-            msg = _("No plugin for Host extension")
-            LOG.error(msg)
-            raise webob.exc.HTTPNotFound(msg)
-        return plugin
-
-    def index(self, request, **kwargs):
-        plugin = self.get_plugin()
-        return plugin.get_tunnelzone_hosts(request.context, **kwargs)
-
-
 @midonet_extension
 class Tunnelzone(extensions.ExtensionDescriptor):
     """Tunnel zone represents a group in which hosts can be included to form an
@@ -158,11 +139,12 @@ class Tunnelzone(extensions.ExtensionDescriptor):
     }
 
     CHILD_RESOURCE_ATTRIBUTE_MAP = {
-        TUNNEL_ZONE_HOSTS: {
+        'tunnelzonehost': {
             'id': {'allow_post': False, 'allow_put': False,
                    'validate': {'type:uuid': None}, 'is_visible': True},
             'tunnelZoneId': {'allow_post': True, 'allow_put': True,
-                             'validate': {'type:uuid': None}, 'is_visible': True},
+                             'validate': {'type:uuid': None},
+                             'is_visible': True},
             'tunnelZone': {'allow_post': False, 'allow_put': False,
                            'validate': {'type:url': None}, 'is_visible': True},
             'hostId': {'allow_post': True, 'allow_put': True,
@@ -173,29 +155,3 @@ class Tunnelzone(extensions.ExtensionDescriptor):
                           'validate': {'type:uuid': None}, 'is_visible': True},
             },
         }
-
-    @classmethod
-    def get_resources(cls):
-        # Tunnel Zone
-        exts = list()
-        plugin = manager.NeutronManager.get_plugin()
-        resource_name = cls.EXT_ALIAS
-        collection_name = cls.COLLECTION_NAME
-        params = cls.RESOURCE_ATTIRBUTE_MAP.get(collection_name, dict())
-        controller = base.create_resource(collection_name, resource_name,
-                                          plugin, params, allow_bulk=False)
-        ex = extensions.ResourceExtension(collection_name, controller)
-        exts.append(ex)
-
-        # Tunnel Zone Host
-        params = cls.cHILD_RESOURCE_ATTIRBUTE_MAP.get(
-            TUNNEL_ZONE_HOSTS, dict())
-        parent = dict(member_name=cls.EXT_ALIAS,
-                      collection_name=cls.COLLECTION_NAME)
-        tunnel_zone_host_resource = resource.Resource(
-            TunnelzonehostController(), base.FAULT_MAP)
-        tunnel_zone_host_extension = extensions.ResourceExtension(
-            TUNNEL_ZONE_HOSTS, tunnel_zone_host_resource,
-            parent=parent, attr_map=params)
-        exts.append(tunnel_zone_host_extension)
-        return exts
