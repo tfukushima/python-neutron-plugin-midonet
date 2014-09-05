@@ -23,6 +23,7 @@
 # @author: Rossella Sblendido, Midokura Japan KK
 # @author: Duarte Nunes, Midokura Japan KK
 
+import re
 from webob import exc as w_exc
 
 from midonetclient import exc
@@ -32,6 +33,8 @@ from oslo.config import cfg
 
 from sqlalchemy import exc as sa_exc
 
+from midonet.neutron import extensions
+from neutron.api import extensions as neutron_extensions
 from neutron.api.rpc.handlers import dhcp_rpc
 from neutron.api.v2 import base
 from neutron.common import exceptions as n_exc
@@ -116,6 +119,7 @@ def generate_methods(methods):
 
     required_methods = [method for method in methods
                         if method in ALLOWED_METHODS]
+
     def wrapper(cls):
         # Use the first capitalzed word as an alias.
         [capitalized_resource] = re.findall('^[A-Z][a-z0-9]*', cls.__name__)
@@ -125,7 +129,7 @@ def generate_methods(methods):
             method_name = method + '_' + alias
             try:
                 getattr(cls, method_name)
-            except AttributeError as e:
+            except AttributeError:
                 setattr(cls, method_name, AVAILABLE_METHODS[method])
         return cls
 
@@ -169,6 +173,7 @@ class MidonetPluginV2(db_base_plugin_v2.NeutronDbPluginV2,
 
         # Instantiate MidoNet API client
         conf = cfg.CONF.MIDONET
+        neutron_extensions.append_api_extensions_path(extensions.__path__)
         self.api_cli = n_client.MidonetClient(conf.midonet_uri, conf.username,
                                               conf.password,
                                               project_id=conf.project_id)

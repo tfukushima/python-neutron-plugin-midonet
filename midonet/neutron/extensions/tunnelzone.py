@@ -48,24 +48,19 @@ def midonet_extension(cls):
     setattr(cls, 'CHILD_RESOURCE_ATTRIBUTE_MAP',
             getattr(cls, 'CHILD_RESOURCE_ATTRIBUTE_MAP', []))
 
-    @classmethod
     def get_name(cls):
         return cls.__name__.capitalize()
 
-    @classmethod
     def get_alias(cls):
         return cls.EXT_ALIAS
 
-    @classmethod
     def get_description(cls):
         return cls.__doc__
 
-    @classmethod
     def get_namespace(cls):
         return "http://docs.openstack.org/ext/neutron/%s/api/v1.0" % (
             cls.__name__.lower())
 
-    @classmethod
     def get_updated(cls):
         return "2014-09-01T00:00:00+09:00"
 
@@ -89,7 +84,6 @@ def midonet_extension(cls):
 
     # The default implementation may not go well with some resouces. In that
     # case please define your own get_resources.
-    @classmethod
     def get_resources(cls):
         exts = list()
         plugin = manager.NeutronManager.get_plugin()
@@ -113,12 +107,16 @@ def midonet_extension(cls):
         return exts
 
     required_methods = [get_name, get_alias, get_description,
-                        get_updated, get_resources]
+                        get_namespace, get_updated, get_resources]
     for method in required_methods:
         try:
-            getattr(cls, method.__name__)
-        except AttributeError as e:
-            setattr(cls, method.__name__, method)
+            m = getattr(cls, method.__name__)
+            for b in cls.__bases__:
+                if m == getattr(extensions.ExtensionDescriptor,
+                                method.__name__):
+                    setattr(cls, method.__name__, classmethod(method))
+        except AttributeError:
+            setattr(cls, method.__name__, classmethod(method))
 
     return cls
 
@@ -129,13 +127,13 @@ class Tunnelzone(extensions.ExtensionDescriptor):
     isolated zone for tunneling.
     """
 
-    RESOURCE_ATTIRBUTE_MAP = {
+    RESOURCE_ATTRIBUTE_MAP = {
         'id': {'allow_post': False, 'allow_put': False,
                'validate': {'type:string': None}, 'is_visible': True},
         'name': {'allow_post': True, 'allow_put': True, 'default': '',
                  'validate': {'type:string': None}, 'is_visible': True},
         'type': {'allow_post': True, 'allow_put': True, 'default': 'GRE',
-                 'validate': {'type:values': ['GRE']}, 'is_visible': True},
+                 'validate': {'type:values': ['GRE']}, 'is_visible': True}
     }
 
     CHILD_RESOURCE_ATTRIBUTE_MAP = {
@@ -152,6 +150,7 @@ class Tunnelzone(extensions.ExtensionDescriptor):
             'host': {'allow_post': False, 'allow_put': False,
                      'validate': {'type:uuid': None}, 'is_visible': True},
             'ipAddress': {'allow_post': False, 'allow_put': False,
-                          'validate': {'type:uuid': None}, 'is_visible': True},
-            },
+                          'validate': {'type:uuid': None}, 'is_visible': True}
         }
+    }
+
