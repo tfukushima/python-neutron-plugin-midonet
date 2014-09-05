@@ -45,6 +45,8 @@ def midonet_extension(cls):
     setattr(cls, 'COLLECTION_NAME', collection_name)
     setattr(cls, 'RESOURCE_ATTRIBUTE_MAP',
             {collection_name: cls.RESOURCE_ATTRIBUTE_MAP})
+    setattr(cls, 'CHILD_RESOURCE_ATTRIBUTE_MAP',
+            getattr(cls, 'CHILD_RESOURCE_ATTRIBUTE_MAP', []))
 
     @classmethod
     def get_name(cls):
@@ -67,6 +69,24 @@ def midonet_extension(cls):
     def get_updated(cls):
         return "2014-09-01T00:00:00+09:00"
 
+    def _get_resource_controller(alias):
+        class ResourceController(wsgi.Controller):
+            def get_plugin(self):
+                plugin = manager.NeutronManager.get_service_plugins().get(
+                    alias)
+                if not plugin:
+                    msg = _("No plugin for Host extension")
+                    LOG.error(msg)
+                    raise webob.exc.HTTPNotFound(msg)
+                return plugin
+
+            def index(self, request, **kwargs):
+                plugin = self.get_plugin()
+                collection_name = PLURAL_NAME_MAP.get(alias, '%ss' % alias)
+                return getattr(plugin, 'get_%s' % collection_name)(
+                    request.context, **kwargs)
+        return ResourceController
+
     # The default implementation may not go well with some resouces. In that
     # case please define your own get_resources.
     @classmethod
@@ -80,6 +100,16 @@ def midonet_extension(cls):
                                           plugin, params, allow_bulk=False)
         ex = extensions.ResourceExtension(collection_name, controller)
         exts.append(ex)
+
+        for alias, params in cls.CHILD_RESOURCE_ATTRIBUTE_MAP.items():
+            parent = dict(member_name=cls.EXT_ALIAS,
+                          collection_name=cls.COLLECTION_NAME)
+            child_resource = resource.Resource(
+                _get_resource_controller(alias)(), base.FAULT_MAP)
+            child_extension = extensions.ResourceExtension(
+                alias, child_resource,
+                parent=parent, attr_map=params)
+            exts.append(child_extension)
         return exts
 
     required_methods = [get_name, get_alias, get_description,
