@@ -26,6 +26,11 @@ UPDATE = base.Controller.UPDATE
 
 
 @util.generate_methods(LIST, SHOW, CREATE, UPDATE, DELETE)
+class BridgeHandlerMixin(object):
+    """The mixin of the request handler for the bridges."""
+
+
+@util.generate_methods(LIST, SHOW, CREATE, UPDATE, DELETE)
 class TunnelzoneHandlerMixin(object):
     """The mixin of the request handler for the tunnel zones."""
 
@@ -36,6 +41,7 @@ class TunnelzonehostHandlerMixin(object):
     PARENT = TunnelzoneHandlerMixin.ALIAS
 
 
-class MidoNetApiMixin(TunnelzoneHandlerMixin,
+class MidoNetApiMixin(BridgeHandlerMixin,
+                      TunnelzoneHandlerMixin,
                       TunnelzonehostHandlerMixin):
     """MidoNet REST API plugin."""
