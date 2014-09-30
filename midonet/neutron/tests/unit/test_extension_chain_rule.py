@@ -11,6 +11,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+
 import mock
 from webob import exc
 
@@ -32,7 +33,7 @@ class ChainRuleExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
         super(ChainRuleExtensionTestCase, self).setUp()
         plural_mappings = {'chain': 'chains', 'rule': 'rules'}
         self._setUpExtension(
-            'midonet.neutron.extensions.chain_rule.ChainRulePluginBase',
+            'midonet.neutron.plugin.MidonetPluginV2',
             None, chain_rule.RESOURCE_ATTRIBUTE_MAP,
             chain_rule.Chain_rule, '', plural_mappings=plural_mappings)
 
@@ -69,6 +70,21 @@ class ChainRuleExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
         instance.get_chain.assert_called_once_with(
             mock.ANY, unicode(chain_id), fields=mock.ANY)
 
+        res = self.deserialize(res)
+        self.assertIn('chain', res)
+
+    def test_chain_create(self):
+        data = {'chain': {'name': 'dummy_chain',
+                          'tenant_id': _uuid()}}
+        instance = self.plugin.return_value
+        instance.create_chain.return_value = data['chain']
+
+        res = self.api.post(_get_path('chains', fmt=self.fmt),
+                            self.serialize(data),
+                            content_type='application/%s' % self.fmt)
+        self.assertEqual(exc.HTTPCreated.code, res.status_int)
+        instance.create_chain.assert_called_once_with(
+            mock.ANY, chain=data)
         res = self.deserialize(res)
         self.assertIn('chain', res)
 
@@ -132,6 +148,62 @@ class ChainRuleExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
         instance.get_rule.assert_called_once_with(
             mock.ANY, unicode(rule_id), fields=mock.ANY)
 
+        res = self.deserialize(res)
+        self.assertIn('rule', res)
+
+    def test_rule_create(self):
+        data = {'rule': {'chain_id': _uuid(),
+                         'tenant_id': _uuid(),
+                         'cond_invert': False,
+                         'dl_dst': None,
+                         'dl_dst_mask': None,
+                         'dl_src': None,
+                         'dl_src_mask': None,
+                         'dlType': None,
+                         'flow_action': None,
+                         'fragment_policy': None,
+                         'in_ports': None,
+                         'inv_dl_dst': False,
+                         'inv_dl_src': False,
+                         'inv_dlType': False,
+                         'inv_in_ports': False,
+                         'inv_ip_addr_group_dst': False,
+                         'inv_ip_addr_group_src': False,
+                         'inv_nw_dst': False,
+                         'inv_nw_proto': False,
+                         'inv_nw_src': False,
+                         'inv_nw_tos': False,
+                         'inv_out_ports': False,
+                         'inv_port_group': False,
+                         'inv_tp_dst': False,
+                         'inv_tp_src': False,
+                         'ip_addr_group_dst': None,
+                         'ip_addr_group_src': None,
+                         'jump_chain_id': None,
+                         'jump_chainName': None,
+                         'match_forward_flow': False,
+                         'match_return_flow': False,
+                         'nat_targets': None,
+                         'nw_dst_cidr': None,
+                         'nw_proto': None,
+                         'nw_src_cidr': None,
+                         'nw_tos': None,
+                         'out_ports': None,
+                         'port_group': None,
+                         'position': None,
+                         'properties': None,
+                         'tp_dst': None,
+                         'tp_src': None,
+                         'type': 'accept'}}
+        instance = self.plugin.return_value
+        instance.create_rule.return_value = data['rule']
+
+        res = self.api.post(_get_path('rules', fmt=self.fmt),
+                            self.serialize(data),
+                            content_type='application/%s' % self.fmt)
+        self.assertEqual(exc.HTTPCreated.code, res.status_int)
+        instance.create_rule.assert_called_once_with(
+            mock.ANY, rule=data)
         res = self.deserialize(res)
         self.assertIn('rule', res)
 

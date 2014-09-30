@@ -37,6 +37,16 @@ class AdRouteHandlerMixin(object):
 
 
 @util.generate_methods(LIST, SHOW, CREATE, UPDATE, DELETE)
+class ChainHandlerMixin(object):
+    """The mixin of the request handler for the chains."""
+
+
+@util.generate_methods(LIST, SHOW, CREATE, DELETE)
+class RuleHandlerMixin(object):
+    """The mixin of the request handler for the rules."""
+
+
+@util.generate_methods(LIST, SHOW, CREATE, UPDATE, DELETE)
 class TunnelzoneHandlerMixin(object):
     """The mixin of the request handler for the tunnel zones."""
 
@@ -49,6 +59,8 @@ class TunnelzonehostHandlerMixin(object):
 
 class MidoNetApiMixin(AdRouteHandlerMixin,
                       BgpHandlerMixin,
+                      ChainHandlerMixin,
+                      RuleHandlerMixin,
                       TunnelzoneHandlerMixin,
                       TunnelzonehostHandlerMixin):
     """MidoNet REST API plugin."""
