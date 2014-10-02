@@ -32,7 +32,7 @@ class HostExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
         super(HostExtensionTestCase, self).setUp()
         plural_mappings = {'host': 'hosts'}
         self._setUpExtension(
-            'midonet.neutron.extensions.host.HostPluginBase',
+            'midonet.neutron.plugin.MidonetPluginV2',
             host.HOST, host.RESOURCE_ATTRIBUTE_MAP,
             host.Host, '', plural_mappings=plural_mappings)
 
