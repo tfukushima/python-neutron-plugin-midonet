@@ -36,6 +36,11 @@ class AdRouteHandlerMixin(object):
     ALIAS = 'ad_route'
 
 
+@util.generate_methods(LIST, SHOW, UPDATE, DELETE)
+class LicenseHandlerMixin(object):
+    """The mixin of the request handler for the licenses."""
+
+
 @util.generate_methods(LIST, SHOW, CREATE, UPDATE, DELETE)
 class TunnelzoneHandlerMixin(object):
     """The mixin of the request handler for the tunnel zones."""
@@ -49,6 +54,7 @@ class TunnelzonehostHandlerMixin(object):
 
 class MidoNetApiMixin(AdRouteHandlerMixin,
                       BgpHandlerMixin,
+                      LicenseHandlerMixin,
                       TunnelzoneHandlerMixin,
                       TunnelzonehostHandlerMixin):
     """MidoNet REST API plugin."""
