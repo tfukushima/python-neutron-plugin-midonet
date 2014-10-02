@@ -36,6 +36,16 @@ class AdRouteHandlerMixin(object):
     ALIAS = 'ad_route'
 
 
+@util.generate_methods(LIST, SHOW, CREATE, DELETE)
+class IpAddrGroupHandlerMixin(object):
+    ALIAS = 'ip_addr_group'
+
+
+@util.generate_methods(LIST, SHOW, CREATE, DELETE)
+class IpAddrGrouAddrHandlerMixin(object):
+    ALIAS = 'ip_addr_group_addr'
+
+
 @util.generate_methods(LIST, SHOW, CREATE, UPDATE, DELETE)
 class TunnelzoneHandlerMixin(object):
     """The mixin of the request handler for the tunnel zones."""
@@ -49,6 +59,8 @@ class TunnelzonehostHandlerMixin(object):
 
 class MidoNetApiMixin(AdRouteHandlerMixin,
                       BgpHandlerMixin,
+                      IpAddrGroupHandlerMixin,
+                      IpAddrGrouAddrHandlerMixin,
                       TunnelzoneHandlerMixin,
                       TunnelzonehostHandlerMixin):
     """MidoNet REST API plugin."""
