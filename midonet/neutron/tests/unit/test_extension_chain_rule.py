@@ -12,6 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import copy
 import mock
 from webob import exc
 
@@ -74,10 +75,13 @@ class ChainRuleExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
         self.assertIn('chain', res)
 
     def test_chain_create(self):
+        chain_id = _uuid()
         data = {'chain': {'name': 'dummy_chain',
                           'tenant_id': _uuid()}}
+        return_value = copy.deepcopy(data['chain'])
+        return_value.update({'id': chain_id})
         instance = self.plugin.return_value
-        instance.create_chain.return_value = data['chain']
+        instance.create_chain.return_value = return_value
 
         res = self.api.post(_get_path('chains', fmt=self.fmt),
                             self.serialize(data),
@@ -87,6 +91,7 @@ class ChainRuleExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
             mock.ANY, chain=data)
         res = self.deserialize(res)
         self.assertIn('chain', res)
+        self.assertEqual(res['chain'], return_value)
 
     def test_chain_update(self):
         chain_id = _uuid()
@@ -152,6 +157,7 @@ class ChainRuleExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
         self.assertIn('rule', res)
 
     def test_rule_create(self):
+        rule_id = _uuid()
         data = {'rule': {'chain_id': _uuid(),
                          'tenant_id': _uuid(),
                          'cond_invert': False,
@@ -195,8 +201,10 @@ class ChainRuleExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
                          'tp_dst': None,
                          'tp_src': None,
                          'type': 'accept'}}
+        return_value = copy.deepcopy(data['rule'])
+        return_value.update({'id': rule_id})
         instance = self.plugin.return_value
-        instance.create_rule.return_value = data['rule']
+        instance.create_rule.return_value = return_value
 
         res = self.api.post(_get_path('rules', fmt=self.fmt),
                             self.serialize(data),
@@ -206,6 +214,7 @@ class ChainRuleExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
             mock.ANY, rule=data)
         res = self.deserialize(res)
         self.assertIn('rule', res)
+        self.assertEqual(res['rule'], return_value)
 
     def test_rule_delete(self):
         rule_id = _uuid()

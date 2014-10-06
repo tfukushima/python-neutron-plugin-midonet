@@ -22,6 +22,8 @@ from neutron.api.v2 import attributes as attr
 from neutron.api.v2 import base
 from neutron import manager
 
+from midonet.neutron import api
+
 CHAIN = 'chain'
 CHAINS = '%ss' % CHAIN
 
@@ -309,7 +311,7 @@ class Chain_rule(object):
 
 
 @six.add_metaclass(abc.ABCMeta)
-class ChainRulePluginBase(object):
+class ChainRulePluginBase(api.ChainHandlerMixin, api.RuleHandlerMixin):
 
     def get_plugin_name(self):
         return "chain-rule plugin"
