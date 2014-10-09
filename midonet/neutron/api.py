@@ -19,6 +19,7 @@ from midonet.neutron.extensions import bridge
 from midonet.neutron.extensions import chain_rule
 from midonet.neutron.extensions import host
 from midonet.neutron.extensions import ip_addr_group
+from midonet.neutron.extensions import port
 
 from neutron.api.v2 import base
 
@@ -68,6 +69,12 @@ class IpAddrGroupHandlerMixin(ip_addr_group.IpAddrGroupPluginBase):
 @util.generate_methods(LIST, SHOW, CREATE, DELETE)
 class IpAddrGrouAddrHandlerMixin(ip_addr_group.IpAddrGroupAddrPluginBase):
     ALIAS = 'ip_addr_group_addr'
+
+
+@util.generate_methods(LIST, SHOW, CREATE, UPDATE, DELETE)
+class PortHandlerMixin(port.PortPluginBase):
+    """The mixin of the request handler for the ports."""
+    ALIAS = "midonet_port"
 
 
 @util.generate_methods(LIST, SHOW, CREATE, UPDATE, DELETE)
