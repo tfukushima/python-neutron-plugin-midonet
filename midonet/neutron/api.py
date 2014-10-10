@@ -21,6 +21,7 @@ from midonet.neutron.extensions import host
 from midonet.neutron.extensions import ip_addr_group
 from midonet.neutron.extensions import license
 from midonet.neutron.extensions import port
+from midonet.neutron.extensions import subnet
 
 from neutron.api.v2 import base
 
@@ -81,6 +82,18 @@ class LicenseHandlerMixin(license.LicensePluginBase):
 class PortHandlerMixin(port.PortPluginBase):
     """The mixin of the request handler for the ports."""
     ALIAS = 'midonet_port'
+
+
+@util.generate_methods(LIST, SHOW, CREATE, UPDATE, DELETE)
+class SubnetHandlerMixin(subnet.SubnetPluginBase):
+    """The mixin of the request handler for the subnets."""
+
+
+@util.generate_methods(LIST, SHOW, CREATE, DELETE)
+class SubnetDhcpHostHandlerMixin(subnet.SubnetDhcpHostPluginBase):
+    """The mixin of the request handler for the subnet dhcp hosts."""
+    ALIAS = 'subnet_dhcp_host'
+    PARENT = SubnetHandlerMixin.ALIAS
 
 
 @util.generate_methods(LIST, SHOW, CREATE, UPDATE, DELETE)
