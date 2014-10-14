@@ -77,5 +77,4 @@ class SystemTestCase(test_api_v2_extension.ExtensionTestCase):
 
 
 class SystemTestCaseXml(SystemTestCase):
-
     fmt = "xml"

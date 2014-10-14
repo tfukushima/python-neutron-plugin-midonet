@@ -23,6 +23,7 @@ from midonet.neutron.extensions import license
 from midonet.neutron.extensions import port
 from midonet.neutron.extensions import port_group
 from midonet.neutron.extensions import routing_table
+from midonet.neutron.extensions import system
 
 from neutron.api.v2 import base
 
@@ -103,6 +104,11 @@ class RoutingTableHandlerMixin(routing_table.RoutingTablePluginBase):
     ALIAS = 'routing_table'
 
 
+@util.generate_methods(SHOW, UPDATE)
+class SystemHandlerMixin(system.SystemPluginBase):
+    """The mixin of the request handler for the system."""
+
+
 @util.generate_methods(LIST, SHOW, CREATE, UPDATE, DELETE)
 class TunnelzoneHandlerMixin(object):
     """The mixin of the request handler for the tunnel zones."""
@@ -126,6 +132,7 @@ class MidoNetApiMixin(AdRouteHandlerMixin,
                       PortGroupHandlerMixin,
                       PortGroupPortHandlerMixin,
                       RoutingTableHandlerMixin,
+                      SystemHandlerMixin,
                       TunnelzoneHandlerMixin,
                       TunnelzonehostHandlerMixin):
     """MidoNet REST API plugin."""
