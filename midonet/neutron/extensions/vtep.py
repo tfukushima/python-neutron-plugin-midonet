@@ -22,72 +22,91 @@ from neutron.api.v2 import attributes as attr
 from neutron.api.v2 import base
 from neutron import manager
 
+PORT = 'port'
+PORTS = '%%s'
+
 VTEP = 'vtep'
 VTEPS = '%ss' % VTEP
 
 VTEP_BINDING = 'binding'
 VTEP_BINDINGS = '%ss' % VTEP_BINDING
 
-VXLAN = 'vxlan'
-VXLANS = '%ss' % VXLAN
+VTEP_PORT = 'vtep_port'
+VTEP_PORTS = '%ss' % VTEP_PORT
 
 RESOURCE_ATTRIBUTE_MAP = {
     VTEPS: {
-        'management_ip': {'allow_post': True, 'allow_put': False,
-            'validate': {'type:string': None},
-            'is_visible': True},
-        'management_port': {'allow_post': True, 'allow_put': True,
-            'validate': {'type:range': [1, 65535]},
-            'is_visible': True},
+        'mgmt_ip': {'allow_post': True, 'allow_put': False,
+                    'validate': {'type:ip_address': None},
+                    'is_visible': True},
+        'mgmt_port': {'allow_post': True, 'allow_put': True,
+                      'validate': {'type:port_range': None},
+                      'is_visible': True},
         'name': {'allow_post': True, 'allow_put': True,
-            'validate': {'type:string': None},
-            'is_visible': True},
+                 'validate': {'type:string': None},
+                 'is_visible': True},
         'description': {'allow_post': True, 'allow_put': False,
-            'validate': {'type:string': None},
-            'is_visible': True},
+                        'validate': {'type:string': None},
+                        'is_visible': True},
         'connection_state': {'allow_post': True, 'allow_put': False,
-            'validate': {'type:values': ['CONNECTED', 'DISCONNECTED',
-                                         'ERROR']},
-            'is_visible': True},
+                             'validate': {
+                                 'type:values': [
+                                     'CONNECTED',
+                                     'DISCONNECTED',
+                                     'ERROR'
+                                 ]
+                             },
+                             'is_visible': True},
         'tenant_id': {'allow_post': True, 'allow_put': False,
-            'validate': {'type:string': None},
-            'is_visible': True},
+                      'validate': {'type:uuid': None},
+                      'is_visible': True, 'required_by_policy': True},
         'tunnel_zone_id': {'allow_post': True, 'allow_put': False,
-            'validate': {'type:uuid': None},
-            'is_visible': True},
+                           'validate': {'type:uuid': None},
+                           'is_visible': True, 'required_by_policy': True},
         'tunnel_ip_addrs': {'allow_post': True, 'allow_put': False,
-            'validate': {'type:list_of_string': None},
-            'is_visible': True},
+                            'validate': {
+                                'type:list_of_ip_address_or_none': None
+                            },
+                            'is_visible': True},
+        'tenant_id': {'allow_post': True, 'allow_put': False,
+                      'validate': {'type:uuid': None},
+                      'is_visible': True}
     },
     VTEP_BINDINGS: {
-        'mgmt_ip': {'allow_post': True, 'allow_put': True,
-            'validate': {'type:string': None},
-            'is_visible': True},
         'port_name': {'allow_post': True, 'allow_put': True,
-            'validate': {'type:string': None},
-            'is_visible': True},
+                      'validate': {'type:string': None},
+                      'is_visible': True},
         'vlan_id': {'allow_post': True, 'allow_put': True,
-            'validate': {'type:range': [0, 4095]},
-            'is_visible': True},
+                    'validate': {'type:range': [0, 4095]},
+                    'is_visible': True},
         'network_id': {'allow_post': True, 'allow_put': True,
-            'validate': {'type:uuid': None},
-            'is_visible': True},
+                       'validate': {'type:uuid': None},
+                       'is_visible': True},
+    },
+    VTEP_PORTS: {
+        'name': {'allow_post': False, 'allow_put': False,
+                 'validate': {'type:string': None},
+                 'is_visible': True},
+        'description': {'allow_post': False, 'allow_put': False,
+                        'validate': {'type:string': None},
+                        'is_visible': True}
     }
 }
 
 
-def _validate_list_of_string(data, key_spec=None):
-    if data is not None:
+def _validate_list_of_ip_address_or_none(data, key_spec=None):
+    if data:
         if not isinstance(data, list):
             msg = _("must be a list of strings %s") % data
             return msg
 
         for item in data:
-            if not isinstance(item, basestring):
+            if not attr.validators['type:ip_address'](item):
                 msg = _("must be a list of strings %s") % data
                 return msg
 
-attr.validators['type:list_of_string'] = _validate_list_of_string
+attr.validators['type:list_of_ip_address_or_none'] = \
+    _validate_list_of_ip_address_or_none
 
 
 class Vtep(object):
@@ -103,8 +122,7 @@ class Vtep(object):
 
     @classmethod
     def get_description(cls):
-        return ("vtep abstraction for basic "
-                "vtep-related features")
+        return "vtep abstraction for basic vtep-related features"
 
     @classmethod
     def get_namespace(cls):
@@ -120,35 +138,39 @@ class Vtep(object):
         exts = []
         plugin = manager.NeutronManager.get_plugin()
 
-        # vtep
+        # VTEP
         collection_name = VTEPS
         params = RESOURCE_ATTRIBUTE_MAP.get(collection_name, dict())
-        controller_host = base.create_resource(collection_name, VTEP,
-                                               plugin, params)
-
-        ex = extensions.ResourceExtension(collection_name, controller_host)
+        vtep_controller = base.create_resource(
+            collection_name, VTEP, plugin, params)
+        ex = extensions.ResourceExtension(collection_name, vtep_controller)
         exts.append(ex)
 
-        # vtep binding
+        # VTEP Binding
         parent = dict(member_name=VTEP, collection_name=VTEPS)
         collection_name = VTEP_BINDINGS
         params = RESOURCE_ATTRIBUTE_MAP.get(collection_name, dict())
-        controller_host = base.create_resource(collection_name, VTEP_BINDING,
-                                               plugin, params, parent=parent)
-
-        ex = extensions.ResourceExtension(collection_name, controller_host,
-                                          parent)
+        binding_controller = base.create_resource(
+            collection_name, VTEP_BINDING, plugin, params, parent=parent)
+        ex = extensions.ResourceExtension(
+            collection_name, binding_controller, parent)
         exts.append(ex)
 
-        # vxlan binding
-        parent = dict(member_name=VTEP, collection_name=VTEPS)
-        collection_name = VXLANS
+        parent = dict(member_name=PORT, collection_name=PORTS)
+        collection_name = VTEP_BINDINGS
         params = RESOURCE_ATTRIBUTE_MAP.get(collection_name, dict())
-        controller_host = base.create_resource(collection_name, VXLAN,
-                                               plugin, params, parent=parent)
+        binding_controller = base.create_resource(
+            collection_name, VTEP_BINDING, plugin, params, parent=parent)
 
-        ex = extensions.ResourceExtension(collection_name, controller_host,
-                                          parent)
+        # VTEP Port
+        parent = dict(member_name=VTEP, collection_name=VTEPS)
+        collection_name = PORTS
+        resource_name = PORT
+        params = RESOURCE_ATTRIBUTE_MAP.get(collection_name, dict())
+        vtep_port_controller = base.create_resource(
+            collection_name, resource_name, plugin, params, parent=parent)
+        ex = extensions.ResourceExtension(
+            collection_name, vtep_port_controller, parent)
         exts.append(ex)
 
         return exts
@@ -169,16 +191,6 @@ class Vtep(object):
 @six.add_metaclass(abc.ABCMeta)
 class VtepPluginBase(object):
 
-    def get_plugin_name(self):
-        return "vtep plugin"
-
-    def get_plugin_type(self):
-        return "vtep"
-
-    def get_plugin_description(self):
-        return "vtep extension base plugin"
-
-    """VTEPS"""
     @abc.abstractmethod
     def create_vtep(self, context, vtep):
         pass
@@ -195,7 +207,10 @@ class VtepPluginBase(object):
     def delete_vtep(self, context, ip_addr):
         pass
 
-    """VTEP BINDINGS"""
+
+@six.add_metaclass(abc.ABCMeta)
+class VtepBindingPluginBase(object):
+
     @abc.abstractmethod
     def create_vtep_binding(self, context, vtep_binding):
         pass
@@ -213,11 +228,23 @@ class VtepPluginBase(object):
                             fields=None):
         pass
 
-    """VTEP BINDINGS"""
+
+@six.add_metaclass(abc.ABCMeta)
+class VtepVxlanBindingPluginBase(object):
+
     @abc.abstractmethod
-    def get_vtep_vxlan(self, context, vxlan_port, vtep_id, fields=None):
+    def get_port_binding(self, context, binding, vxlan_port_id, fields=None):
         pass
 
     @abc.abstractmethod
-    def get_vtep_vxlans(self, context, vtep_id, filters=None, fields=None):
+    def get_port_bindings(self, context, vxlan_port_id,
+                          filters=None, fields=None):
+        pass
+
+
+@six.add_metaclass(abc.ABCMeta)
+class VtepPortPluginBase(object):
+
+    @abc.abstractmethod
+    def get_vtep_ports(self, context, vtep_id, filters=None, fields=None):
         pass

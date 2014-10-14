@@ -28,66 +28,91 @@ _get_path = test_api_v2._get_path
 
 class VtepExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
     """Test the endpoints for the vtep extension."""
-    fmt = "json"
+
+    fmt = 'json'
 
     def setUp(self):
         super(VtepExtensionTestCase, self).setUp()
-        plural_mappings = {'vtep': 'vteps',
-                           'vtep_port': 'vtep_ports',
-                           'binding': 'bindings',
-                           'vxlan_port': 'vxlan_ports'}
+        plural_mappings = {'vtep': 'vteps'}
         self._setUpExtension(
             'midonet.neutron.extensions.vtep.VtepPluginBase',
             None, vtep.RESOURCE_ATTRIBUTE_MAP,
             vtep.Vtep, '', plural_mappings=plural_mappings)
 
-    def test_vxlan_binding_show(self):
-        port_id = _uuid()
-        mgmt_ip = "1.1.1.1"
-        vlan_id = 5
-        port_name = "steve"
-        reqstr = "%s_%s" % (port_name, vlan_id)
-        return_value = {'mgmt_ip': mgmt_ip,
-                        'port_name': port_name,
-                        'vlan_id': vlan_id,
-                        'network_id': _uuid()}
+    def test_vtep_list(self):
+        return_value = [{'mgmt_ip': "1.1.1.1",
+                         'name': 'dummy_vtep',
+                         'tunnel_zone_id': _uuid()}]
+        instance = self.plugin.return_value
+        instance.get_vteps.return_value = return_value
+
+        res = self.api.get(_get_path('vteps', fmt=self.fmt))
+        self.assertEqual(exc.HTTPOk.code, res.status_int)
+        instance.get_vteps.assert_called_once_with(
+            mock.ANY, fields=mock.ANY, filters=mock.ANY)
+        res = self.deserialize(res)
+        self.assertIn('vteps', res)
+        self.assertEqual(1, len(res['vteps']))
+
+    def test_vtep_show(self):
+        vtep_ip = '1.1.1.1'
+        return_value = {'mgmt_ip': vtep_ip,
+                        'name': 'dummy_vtep',
+                        'tunnel_zone_id': _uuid()}
 
         instance = self.plugin.return_value
-        instance.get_vtep_vxlan.return_value = return_value
-
-        res = self.api.get(_get_path(
-            'vteps/%s/vxlans/%s' % (port_id, reqstr),
-            fmt=self.fmt))
+        instance.get_vtep.return_value = return_value
+        res = self.api.get(_get_path('vteps/%s' % vtep_ip, fmt=self.fmt))
         self.assertEqual(exc.HTTPOk.code, res.status_int)
-
+        instance.get_vtep.assert_called_once_with(
+            mock.ANY, vtep_ip, fields=mock.ANY)
         res = self.deserialize(res)
-        self.assertIn('vxlan', res)
+        self.assertIn('vtep', res)
 
-    def test_vxlan_binding_list(self):
-        mgmt_ip = "1.1.1.1"
-        vlan_id = 5
-        port_name = "steve"
-        return_value = [{'mgmt_ip': mgmt_ip,
-                         'port_name': port_name,
-                         'vlan_id': vlan_id,
-                         'network_id': _uuid()}]
-
+    def test_vtep_create(self):
+        vtep_ip = '1.1.1.1'
+        data = {'vtep': {'mgmt_ip': vtep_ip,
+                         'mgmt_port': 4,
+                         'description': "bank holiday",
+                         'tenant_id': _uuid(),
+                         'name': 'dummy_vtep',
+                         'connection_state': "DISCONNECTED",
+                         'tunnel_ip_addrs': None,
+                         'tunnel_zone_id': _uuid()}}
+        return_value = copy.deepcopy(data['vtep'])
         instance = self.plugin.return_value
-        instance.get_vtep_vxlans.return_value = return_value
-
-        res = self.api.get(_get_path('vteps/%s/vxlans' % mgmt_ip,
-            fmt=self.fmt))
-
-        self.assertEqual(exc.HTTPOk.code, res.status_int)
-
+        instance.create_vtep.return_value = return_value
+        res = self.api.post(_get_path('vteps', fmt=self.fmt),
+                            self.serialize(data),
+                            content_type='application/%s' % self.fmt)
+        instance.create_vtep.assert_called_once_with(mock.ANY, vtep=mock.ANY)
+        self.assertEqual(exc.HTTPCreated.code, res.status_int)
         res = self.deserialize(res)
-        self.assertIn('vxlans', res)
-        self.assertEqual(1, len(res['vxlans']))
+        self.assertIn('vtep', res)
+        self.assertIn(vtep_ip, res['vtep']['mgmt_ip'])
+
+
+class VtepExtensionTestCaseXml(VtepExtensionTestCase):
+    fmt = 'xml'
+
+
+class VtepBindingExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
+    """Test the endpoints for the vtep binding extension."""
+
+    fmt = 'json'
+
+    def setUp(self):
+        super(VtepExtensionTestCase, self).setUp()
+        plural_mappings = {'binding': 'bindings'}
+        self._setUpExtension(
+            'midonet.neutron.extensions.vtep.VtepBindingPluginBase',
+            None, vtep.RESOURCE_ATTRIBUTE_MAP,
+            vtep.Vtep, '', plural_mappings=plural_mappings)
 
     def test_vtep_binding_show(self):
-        mgmt_ip = "1.1.1.1"
+        mgmt_ip = '1.1.1.1'
         vlan_id = 5
-        port_name = "steve"
+        port_name = 'steve'
         reqstr = "%s_%s" % (port_name, vlan_id)
         return_value = {'mgmt_ip': mgmt_ip,
                         'port_name': port_name,
@@ -101,14 +126,13 @@ class VtepExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
             'vteps/%s/bindings/%s' % (mgmt_ip, reqstr),
             fmt=self.fmt))
         self.assertEqual(exc.HTTPOk.code, res.status_int)
-
         res = self.deserialize(res)
         self.assertIn('binding', res)
 
     def test_vtep_binding_list(self):
-        mgmt_ip = "1.1.1.1"
+        mgmt_ip = '1.1.1.1'
         vlan_id = 5
-        port_name = "steve"
+        port_name = 'steve'
         return_value = [{'mgmt_ip': mgmt_ip,
                          'port_name': port_name,
                          'vlan_id': vlan_id,
@@ -117,77 +141,158 @@ class VtepExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
         instance = self.plugin.return_value
         instance.get_vtep_bindings.return_value = return_value
 
-        res = self.api.get(_get_path('vteps/%s/bindings' % mgmt_ip,
-            fmt=self.fmt))
-
+        res = self.api.get(
+            _get_path('vteps/%s/bindings' % mgmt_ip, fmt=self.fmt))
         self.assertEqual(exc.HTTPOk.code, res.status_int)
-
         res = self.deserialize(res)
         self.assertIn('bindings', res)
         self.assertEqual(1, len(res['bindings']))
 
-    def test_vtep_list(self):
-        return_value = [{'management_ip': "1.1.1.1",
-                         'name': 'dummy_vtep',
-                         'tunnel_zone_id': _uuid()}]
-
-        instance = self.plugin.return_value
-        instance.get_vteps.return_value = return_value
-
-        res = self.api.get(_get_path('vteps', fmt=self.fmt))
-        self.assertEqual(exc.HTTPOk.code, res.status_int)
-
-        instance.get_vteps.assert_called_once_with(
-            mock.ANY, fields=mock.ANY, filters=mock.ANY)
-
-        res = self.deserialize(res)
-        self.assertIn('vteps', res)
-        self.assertEqual(1, len(res['vteps']))
-
-    def test_vtep_show(self):
-        vtep_ip = "1.1.1.1"
-        return_value = {'management_ip': vtep_ip,
-                        'name': 'dummy_vtep',
-                        'tunnel_zone_id': _uuid()}
-
-        instance = self.plugin.return_value
-        instance.get_vtep.return_value = return_value
-
-        res = self.api.get(_get_path('vteps/%s' % vtep_ip, fmt=self.fmt))
-        self.assertEqual(exc.HTTPOk.code, res.status_int)
-
-        instance.get_vtep.assert_called_once_with(
-            mock.ANY, vtep_ip, fields=mock.ANY)
-
-        res = self.deserialize(res)
-        self.assertIn('vtep', res)
-
     def test_vtep_create(self):
-
-        vtep_ip = "1.1.1.1"
-        data = {'vtep': {'management_ip': vtep_ip,
-                        'management_port': 4,
-                        'description': "bank holiday",
-                        'tenant_id': _uuid(),
-                        'name': 'dummy_vtep',
-                        'connection_state': "DISCONNECTED",
-                        'tunnel_ip_addrs': None,
-                        'tunnel_zone_id': _uuid()}}
+        vtep_ip = '1.1.1.1'
+        data = {'vtep': {'mgmt_ip': vtep_ip,
+                         'mgmt_port': 4,
+                         'description': "bank holiday",
+                         'tenant_id': _uuid(),
+                         'name': 'dummy_vtep',
+                         'connection_state': "DISCONNECTED",
+                         'tunnel_ip_addrs': None,
+                         'tunnel_zone_id': _uuid()}}
         return_value = copy.deepcopy(data['vtep'])
         instance = self.plugin.return_value
         instance.create_vtep.return_value = return_value
-
         res = self.api.post(_get_path('vteps', fmt=self.fmt),
                             self.serialize(data),
                             content_type='application/%s' % self.fmt)
-
         instance.create_vtep.assert_called_once_with(mock.ANY, vtep=mock.ANY)
         self.assertEqual(exc.HTTPCreated.code, res.status_int)
         res = self.deserialize(res)
         self.assertIn('vtep', res)
-        self.assertIn(vtep_ip, res['vtep']['management_ip'])
+        self.assertIn(vtep_ip, res['vtep']['mgmt_ip'])
 
 
-class VtepExtensionTestCaseXml(VtepExtensionTestCase):
+class VtepBindingExtensionTestCaseXml(VtepBindingExtensionTestCase):
+    fmt = 'xml'
 
-    fmt = "xml"
+
+class VtepVxlanBindingExtensionTestCase(
+        test_api_v2_extension.ExtensionTestCase):
+
+    def setUp(self):
+        super(VtepExtensionTestCase, self).setUp()
+        plural_mappings = {'binding': 'bindings'}
+        self._setUpExtension(
+            'midonet.neutron.extensions.vtep.VtepVxlanBindingPluginBase',
+            None, vtep.RESOURCE_ATTRIBUTE_MAP,
+            vtep.Vtep, '', plural_mappings=plural_mappings)
+
+    def test_vtep_binding_show(self):
+        port_id = _uuid()
+        mgmt_ip = "1.1.1.1"
+        vlan_id = 5
+        port_name = 'steve'
+        reqstr = "%s_%s" % (port_name, vlan_id)
+        return_value = {'mgmt_ip': mgmt_ip,
+                        'port_name': port_name,
+                        'vlan_id': vlan_id,
+                        'network_id': _uuid()}
+        instance = self.plugin.return_value
+        instance.get_vtep_vxlan.return_value = return_value
+
+        res = self.api.get(_get_path(
+            'vteps/%s/bindings/%s' % (port_id, reqstr),
+            fmt=self.fmt))
+        self.assertEqual(exc.HTTPOk.code, res.status_int)
+
+        res = self.deserialize(res)
+        self.assertIn('binding', res)
+
+    def test_vtep_binding_list(self):
+        mgmt_ip = '1.1.1.1'
+        vlan_id = 5
+        port_name = 'steve'
+        return_value = [{'mgmt_ip': mgmt_ip,
+                         'port_name': port_name,
+                         'vlan_id': vlan_id,
+                         'network_id': _uuid()}]
+        instance = self.plugin.return_value
+        instance.get_vtep_vxlans.return_value = return_value
+
+        res = self.api.get(
+            _get_path('vteps/%s/bindings' % mgmt_ip, fmt=self.fmt))
+        self.assertEqual(exc.HTTPOk.code, res.status_int)
+        res = self.deserialize(res)
+        self.assertIn('bindings', res)
+        self.assertEqual(1, len(res['bindings']))
+
+    def test_vtep_binding_create(self):
+        mgmt_ip = '1.1.1.1'
+        vlan_id = 5
+        port_name = 'steve'
+        data = {'binding': {'mgmt_ip': mgmt_ip,
+                            'port_name': port_name,
+                            'vlan_id': vlan_id,
+                            'network_id': _uuid()}}
+        return_value = data['binding']
+        instance = self.plugin.return_value
+        instance.create_vtep_port_binding.return_value = return_value
+
+        res = self.api.post(
+            _get_path('vteps/%s/bindings' % mgmt_ip, fmt=self.fmt),
+            self.serialize(data),
+            content_type='application/%s' % self.fmt)
+        self.assertEqual(exc.HTTPCreated.code, res.status_int)
+        res = self.deserialize(res)
+        self.assertIn('binding', res)
+        self.assertEqual(res['binding'], return_value)
+
+    def test_vtep_binding_delete(self):
+        mgmt_ip = '1.1.1.1'
+        vlan_id = 5
+        port_name = 'steve'
+        reqstr = "%s_%s" % (port_name, vlan_id)
+        instance = self.plugin.return_value
+
+        res = self.api.delete(_get_path(
+            'vteps/%s/bindings/%s' % (vlan_id, reqstr), fmt=self.fmt))
+        self.assertEqual(exc.HTTPNocontent.code, res.status_int)
+        instance.delete_vtep_port_binding.assert_called_once_with(
+            mock.ANY, reqstr, vtep_id=mgmt_ip)
+
+
+class VtepVxlanBindingExtensionTestCaseXml(VtepVxlanBindingExtensionTestCase):
+    fmt = 'xml'
+
+
+class VtepPortExtensionTestCase(test_api_v2_extension.ExtensionTestCase):
+    """Test the endpoints for the vtep port extension."""
+
+    fmt = 'json'
+
+    def setUp(self):
+        super(VtepExtensionTestCase, self).setUp()
+        plural_mappings = {'port': 'ports'}
+        self._setUpExtension(
+            'midonet.neutron.extensions.vtep.VtepPortPluginBase',
+            None, vtep.RESOURCE_ATTRIBUTE_MAP,
+            vtep.Vtep, '', plural_mappings=plural_mappings)
+
+    def test_vtep_port_list(self):
+        mgmt_ip = '10.0.0.1'
+        return_value = [{'name': 'dummy_vtep',
+                         'description': 'This is a dummy description.'}]
+        instance = self.plugin.return_value
+        instance.get_vteps.return_value = return_value
+
+        res = self.api.get(
+            _get_path('vteps/%s/ports' % mgmt_ip, fmt=self.fmt))
+        self.assertEqual(exc.HTTPOk.code, res.status_int)
+        instance.get_vtep_portss.assert_called_once_with(
+            mock.ANY, vtep_id=mgmt_ip, fields=mock.ANY, filters=mock.ANY)
+        res = self.deserialize(res)
+        self.assertIn('ports', res)
+        self.assertEqual(1, len(res['ports']))
+
+
+class VtepPortBindingExtensionTestCaseXml(VtepPortExtensionTestCase):
+    fmt = 'xml'

@@ -25,6 +25,7 @@ from midonet.neutron.extensions import port_group
 from midonet.neutron.extensions import router
 from midonet.neutron.extensions import routing_table
 from midonet.neutron.extensions import system
+from midonet.neutron.extensions import vtep
 
 from neutron.api.v2 import base
 
@@ -125,6 +126,32 @@ class TunnelzoneHandlerMixin(object):
 class TunnelzonehostHandlerMixin(object):
     """The mixin of the request handler for the tunnel zone hosts."""
     PARENT = TunnelzoneHandlerMixin.ALIAS
+
+
+@util.generate_methods(LIST, SHOW, CREATE, DELETE)
+class VtepHandlerMixin(vtep.VtepPluginBase):
+    """The mixin of the request handler for the VTEPs."""
+
+
+@util.generate_methods(LIST, SHOW, CREATE, DELETE)
+class VtepBindingHandlerMixin(vtep.VtepBindingPluginBase):
+    """The mixin of the request handler for the VTEP bindings."""
+    ALIAS = 'binding'
+    PARENT = VtepHandlerMixin.ALIAS
+
+
+@util.generate_methods(LIST, SHOW)
+class VtepVxlanBindingHandlerMixin(vtep.VtepVxlanBindingPluginBase):
+    """The mixin of the request handler for the VTEP VXLAN bindings."""
+    ALIAS = 'binding'
+    PARENT = PortHandlerMixin.ALIAS
+
+
+@util.generate_methods(LIST, SHOW)
+class VtepPortHandlerMixin(vtep.VtepVxlanPluginBase):
+    """The mixin of the request handler for the VTEP ports."""
+    ALIAS = 'ports'
+    PARENT = VtepHandlerMixin.ALIAS
 
 
 class MidoNetApiMixin(AdRouteHandlerMixin,
